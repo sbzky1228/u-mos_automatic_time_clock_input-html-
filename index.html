@@ -19,9 +19,7 @@
             <span class="close" onclick="closeForm()">&times;</span>
             <form id="inForm" class="form hidden" onsubmit="submitForm(event, 'in')">
                 <h2>出勤</h2>
-                <label>出勤時間: <input type="time" name="in_time" id="inTime" required></label>
-                <div class="time-suggestions" id="inTimeSuggestions" aria-hidden="false"></div>
-                <br>
+                <label>出勤時間: <input type="time" name="in_time" required></label><br>
                 <label>種別:
                     <select name="in_type">
                         <option value="客先">客先</option>
@@ -30,34 +28,23 @@
                     </select>
                 </label><br>
                 <label>日にち: <input type="date" name="in_date" required></label><br>
-                <label>コメント: <input type="text" name="in_comment" id="inComment" maxlength="120" placeholder="（任意）120文字以内"></label>
-                <div class="char-count" id="inCommentCount">120</div>
+                <label>コメント: <input type="text" name="in_comment"></label><br>
                 <button type="submit">送信</button>
             </form>
 
             <form id="outForm" class="form hidden" onsubmit="submitForm(event, 'out')">
                 <h2>退勤</h2>
-                <label>退勤時間: <input type="time" name="out_time" id="outTime" required></label>
-                <div class="time-suggestions" id="outTimeSuggestions"></div>
-                <br>
-                <label>出勤時間（任意）: <input type="time" name="out_in_time" id="outInTime" placeholder="出勤時間を入力（任意）"></label>
-                <div class="time-suggestions" id="outInTimeSuggestions"></div>
-                <br>
-                <label>実績時間: <input type="text" id="actualHours" name="actual_hours" readonly></label><br>
+                <label>退勤時間: <input type="time" name="out_time" required></label><br>
                 <label>日にち: <input type="date" name="out_date" required></label><br>
                 <label>業務内容: 
                     <div class="task-input-wrapper">
-                        <input type="text" name="out_task" id="taskInput" maxlength="120" oninput="onOutTaskInput()" onfocus="showTaskDropdown()" onblur="hideTaskDropdown()">
-                        <div id="taskDropdown" class="task-dropdown hidden">
-                            <input class="task-search" id="taskSearch" placeholder="テンプレートを検索" oninput="filterTaskDropdown(this.value)">
-                            <div class="task-list" id="taskList"></div>
-                        </div>
+                        <input type="text" name="out_task" id="taskInput" oninput="showTaskDropdown()" onfocus="showTaskDropdown()" onblur="hideTaskDropdown()">
+                        <div id="taskDropdown" class="task-dropdown hidden"></div>
                     </div>
                 </label>
-                <div class="char-count" id="outTaskCount">120</div>
                 <button type="button" onclick="openAddTemplateModal()" class="add-template-btn">テンプレート追加</button><br>
                 <button type="submit">送信</button>
-            </form>
+            </form> 
         </div>
     </div>
 
