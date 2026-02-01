@@ -272,15 +272,20 @@ button[type="submit"]:hover {
     }
 
     .buttons {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         gap: 10px;
         margin: 20px 0;
+        align-items: center;
+        justify-content: center;
     }
 
     #inBtn,
     #outBtn {
-        width: 100%;
-        padding: 14px 20px;
+        flex: 1 1 40%;
+        min-width: 140px;
+        max-width: 240px;
+        padding: 12px 18px;
         font-size: 16px;
     }
 
@@ -314,13 +319,13 @@ button[type="submit"]:hover {
     }
 
     .add-template-btn {
-        width: 100%;
+        width: auto;
     }
 
     button[type="button"] {
-        width: 100%;
+        width: auto;
     }
-}
+} 
 
 @media (max-width: 480px) {
     body {
@@ -334,11 +339,15 @@ button[type="submit"]:hover {
 
     .buttons {
         gap: 8px;
+        flex-wrap: wrap;
     }
 
     #inBtn,
     #outBtn {
-        padding: 12px 15px;
+        flex: 1 1 48%;
+        min-width: 120px;
+        max-width: 200px;
+        padding: 10px 12px;
         font-size: 14px;
     }
 
@@ -369,7 +378,7 @@ button[type="submit"]:hover {
     .add-template-btn {
         padding: 10px 15px;
         font-size: 14px;
-        width: 100%;
+        width: auto;
     }
 
     .close {
