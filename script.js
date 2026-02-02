@@ -17,6 +17,7 @@ function saveTemplates() {
 
 function showForm(type) {
     const modal = document.getElementById('modal');
+    const modalContent = modal.querySelector('.modal-content');
     document.getElementById('inForm').classList.add('hidden');
     document.getElementById('outForm').classList.add('hidden');
     
@@ -33,23 +34,43 @@ function showForm(type) {
         document.querySelector('input[name="out_time"]').value = '17:30';
         updateTaskDropdown();
     }
+
+    // モバイル判定して全画面クラスを付け外し
+    if (window.innerWidth <= 480) {
+        modalContent.classList.add('fullscreen');
+    } else {
+        modalContent.classList.remove('fullscreen');
+    }
+
     modal.style.display = 'block';
 }
 
 function closeForm() {
     const modal = document.getElementById('modal');
     modal.style.display = 'none';
+    const mc = modal.querySelector('.modal-content');
+    if (mc) mc.classList.remove('fullscreen');
 }
 
 function openAddTemplateModal() {
-    document.getElementById('templateModal').style.display = 'block';
+    const templateModal = document.getElementById('templateModal');
+    const mc = templateModal.querySelector('.modal-content');
+    if (window.innerWidth <= 480) {
+        mc.classList.add('fullscreen');
+    } else {
+        mc.classList.remove('fullscreen');
+    }
+    templateModal.style.display = 'block';
     document.getElementById('newTemplateInput').value = '';
     document.getElementById('newTemplateInput').focus();
 }
 
 function closeAddTemplateModal() {
-    document.getElementById('templateModal').style.display = 'none';
+    const templateModal = document.getElementById('templateModal');
+    templateModal.style.display = 'none';
     document.getElementById('templateError').classList.add('hidden');
+    const mc = templateModal.querySelector('.modal-content');
+    if (mc) mc.classList.remove('fullscreen');
 }
 
 function checkTemplateInput() {
@@ -150,3 +171,18 @@ function selectTask(task) {
 
 // ページ読み込み時にテンプレートを読み込む
 loadTemplates();
+
+// ウィンドウサイズ変更時に、開いているモーダルの表示クラスを更新する
+window.addEventListener('resize', () => {
+    document.querySelectorAll('.modal').forEach(modal => {
+        if (modal.style.display === 'block') {
+            const mc = modal.querySelector('.modal-content');
+            if (!mc) return;
+            if (window.innerWidth <= 480) {
+                mc.classList.add('fullscreen');
+            } else {
+                mc.classList.remove('fullscreen');
+            }
+        }
+    });
+});
