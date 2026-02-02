@@ -36,6 +36,13 @@
                 <h2>退勤</h2>
                 <label>退勤時間: <input type="time" name="out_time" required></label><br>
                 <label>日にち: <input type="date" name="out_date" required></label><br>
+
+                <!-- 出勤時間を入力または自動挿入 -->
+                <label>出勤時間: <input type="time" name="in_time_for_out" id="inTimeForOut" required></label><br>
+
+                <!-- 実績時間は自動計算して読み取り専用で表示 -->
+                <label>実績時間（時間）: <input type="number" name="actual_hours" id="actualHours" step="0.01" readonly placeholder="0.00"></label><br>
+
                 <label>業務内容: 
                     <div class="task-input-wrapper">
                         <input type="text" name="out_task" id="taskInput" oninput="showTaskDropdown()" onfocus="showTaskDropdown()" onblur="hideTaskDropdown()">

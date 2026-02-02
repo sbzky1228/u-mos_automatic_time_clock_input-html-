@@ -39,6 +39,8 @@ label {
 input[type="time"],
 input[type="date"],
 input[type="text"],
+input[type="number"],
+input[readonly],
 select {
     width: 100%;
     padding: 14px 16px;
@@ -51,17 +53,31 @@ select {
     background: white;
     color: #333;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    -moz-appearance: textfield;
+    -webkit-appearance: none;
 }
+
+/* Remove native number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+} 
 
 input[type="time"]:focus,
 input[type="date"]:focus,
 input[type="text"]:focus,
+input[type="number"]:focus,
+input[readonly]:focus,
 select:focus {
     outline: none;
     border-color: #00BFFF;
     box-shadow: 0 0 12px rgba(0, 191, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.05);
     transform: translateY(-2px);
-}
+} 
 .buttons {
     display: flex;
     justify-content: center;
@@ -309,6 +325,8 @@ button[type="submit"]:hover {
     input[type="time"],
     input[type="date"],
     input[type="text"],
+    input[type="number"],
+    input[readonly],
     select {
         padding: 12px;
         font-size: 16px;
@@ -352,32 +370,21 @@ button[type="submit"]:hover {
         font-size: 14px;
     }
 
-    /* モバイルではモーダルをフルスクリーンにして操作しやすくする */
+    /* モバイルでも中央表示に戻す（下からのスライドではなく、元のスライドイン） */
     .modal-content {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: 0;
-        width: 100%;
-        max-width: none;
-        height: 100vh;
-        padding: 20px;
-        border-radius: 0;
+        background-color: white;
+        margin: 10% auto;
+        padding: 30px;
+        border: none;
+        width: 90%;
+        max-width: 450px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease;
         overflow-y: auto;
-        animation: slideUp 0.25s ease;
-        box-shadow: none;
     }
 
-    .modal-content.fullscreen {
-        /* placeholder if JS toggles class */
-    }
 
-    @keyframes slideUp {
-        from { transform: translateY(100%); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-    }
 
     .modal-content h2 {
         font-size: 1.2em;
@@ -391,6 +398,8 @@ button[type="submit"]:hover {
     input[type="time"],
     input[type="date"],
     input[type="text"],
+    input[type="number"],
+    input[readonly],
     select {
         padding: 10px;
         font-size: 15px;
