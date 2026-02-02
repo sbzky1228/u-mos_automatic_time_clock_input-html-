@@ -17,7 +17,6 @@ function saveTemplates() {
 
 function showForm(type) {
     const modal = document.getElementById('modal');
-    const modalContent = modal.querySelector('.modal-content');
     document.getElementById('inForm').classList.add('hidden');
     document.getElementById('outForm').classList.add('hidden');
     
@@ -33,33 +32,30 @@ function showForm(type) {
         document.querySelector('input[name="out_date"]').value = today;
         document.querySelector('input[name="out_time"]').value = '17:30';
         updateTaskDropdown();
-    }
 
-    // モバイル判定して全画面クラスを付け外し
-    if (window.innerWidth <= 480) {
-        modalContent.classList.add('fullscreen');
-    } else {
-        modalContent.classList.remove('fullscreen');
+        // 出勤時間をローカルストレージから挿入（あれば当日分）、なければ 09:00
+        const inField = document.getElementById('inTimeForOut');
+        const lastIn = JSON.parse(localStorage.getItem('lastIn') || 'null');
+        if (inField) {
+            if (lastIn && lastIn.date === today) {
+                inField.value = lastIn.time;
+            } else {
+                inField.value = '09:00';
+            }
+            updateActualHours();
+        }
     }
 
     modal.style.display = 'block';
-}
+} 
 
 function closeForm() {
     const modal = document.getElementById('modal');
     modal.style.display = 'none';
-    const mc = modal.querySelector('.modal-content');
-    if (mc) mc.classList.remove('fullscreen');
 }
 
 function openAddTemplateModal() {
     const templateModal = document.getElementById('templateModal');
-    const mc = templateModal.querySelector('.modal-content');
-    if (window.innerWidth <= 480) {
-        mc.classList.add('fullscreen');
-    } else {
-        mc.classList.remove('fullscreen');
-    }
     templateModal.style.display = 'block';
     document.getElementById('newTemplateInput').value = '';
     document.getElementById('newTemplateInput').focus();
@@ -69,9 +65,7 @@ function closeAddTemplateModal() {
     const templateModal = document.getElementById('templateModal');
     templateModal.style.display = 'none';
     document.getElementById('templateError').classList.add('hidden');
-    const mc = templateModal.querySelector('.modal-content');
-    if (mc) mc.classList.remove('fullscreen');
-}
+} 
 
 function checkTemplateInput() {
     const newTemplate = document.getElementById('newTemplateInput').value.trim();
@@ -147,6 +141,16 @@ function submitForm(event, type) {
     .then(res => res.json())
     .then(json => {
         alert(json.message);
+        // 成功時に出勤データをローカルに保持（退勤ポップアップでの自動挿入に使用）
+        if (type === 'in') {
+            try {
+                if (data['in_date'] && data['in_time']) {
+                    localStorage.setItem('lastIn', JSON.stringify({ date: data['in_date'], time: data['in_time'] }));
+                }
+            } catch (e) {
+                console.warn('localStorage set failed', e);
+            }
+        }
         closeForm();
     })
     .catch(err => alert("エラーが発生しました"));
@@ -172,17 +176,64 @@ function selectTask(task) {
 // ページ読み込み時にテンプレートを読み込む
 loadTemplates();
 
-// ウィンドウサイズ変更時に、開いているモーダルの表示クラスを更新する
-window.addEventListener('resize', () => {
-    document.querySelectorAll('.modal').forEach(modal => {
-        if (modal.style.display === 'block') {
-            const mc = modal.querySelector('.modal-content');
-            if (!mc) return;
-            if (window.innerWidth <= 480) {
-                mc.classList.add('fullscreen');
-            } else {
-                mc.classList.remove('fullscreen');
-            }
-        }
-    });
-});
+// --- 実績時間計算機能 ---
+function timeToMinutes(t) {
+    if (!t) return null;
+    const parts = t.split(':').map(Number);
+    if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+    return parts[0] * 60 + parts[1];
+}
+
+function overlapMinutes(aStart, aEnd, bStart, bEnd) {
+    return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
+}
+
+function computeActualHours(inTimeStr, outTimeStr) {
+    const inMin = timeToMinutes(inTimeStr);
+    const outMin = timeToMinutes(outTimeStr);
+    if (inMin === null || outMin === null) return null;
+    let duration = outMin - inMin;
+    if (duration < 0) duration += 24 * 60; // 日跨ぎ対応
+
+    const breaks = [
+        [11 * 60 + 45, 12 * 60 + 30], // 11:45 - 12:30
+        [17 * 60 + 30, 18 * 60]       // 17:30 - 18:00
+    ];
+
+    let breakOverlap = 0;
+    for (const br of breaks) {
+        breakOverlap += overlapMinutes(inMin, outMin, br[0], br[1]);
+    }
+
+    let workingMinutes = duration - breakOverlap;
+    if (workingMinutes < 0) workingMinutes = 0;
+    const hours = workingMinutes / 60;
+    return Number(hours.toFixed(2));
+}
+
+function updateActualHours() {
+    const inField = document.getElementById('inTimeForOut');
+    const outField = document.querySelector('input[name="out_time"]');
+    const actualField = document.getElementById('actualHours');
+    if (!inField || !outField || !actualField) return;
+    const inVal = inField.value;
+    const outVal = outField.value;
+    if (!inVal || !outVal) {
+        actualField.value = '';
+        return;
+    }
+    const hours = computeActualHours(inVal, outVal);
+    if (hours === null) {
+        actualField.value = '';
+    } else {
+        actualField.value = hours.toFixed(2);
+    }
+}
+
+// 入力の変化を監視
+const inTimeInput = document.getElementById('inTimeForOut');
+const outTimeInput = document.querySelector('input[name="out_time"]');
+if (inTimeInput) inTimeInput.addEventListener('input', updateActualHours);
+if (outTimeInput) outTimeInput.addEventListener('input', updateActualHours);
+
+
