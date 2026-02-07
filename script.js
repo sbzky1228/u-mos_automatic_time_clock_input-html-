@@ -239,12 +239,25 @@ if (outTimeInput) outTimeInput.addEventListener('input', updateActualHours);
 // --- Body scroll lock for mobile when content fits viewport ---
 function updateBodyScrollLock() {
     try {
-        // small tolerance for mobile address bar variations
-        const needsScroll = document.documentElement.scrollHeight > (window.innerHeight + 2);
+        // Use visualViewport if available (better on mobile browsers with dynamic UI)
+        const viewportHeight = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+
+        // Calculate content height robustly
+        const contentHeight = Math.max(
+            document.documentElement.scrollHeight || 0,
+            document.body.scrollHeight || 0,
+            document.documentElement.offsetHeight || 0,
+            document.body.offsetHeight || 0
+        );
+
+        // small tolerance for mobile address bar / rounding
+        const needsScroll = contentHeight > (viewportHeight + 4);
         if (!needsScroll) {
             document.body.classList.add('no-scroll');
+            document.documentElement.classList.add('no-scroll');
         } else {
             document.body.classList.remove('no-scroll');
+            document.documentElement.classList.remove('no-scroll');
         }
     } catch (e) {
         // silent
@@ -265,14 +278,21 @@ function onTouchMovePrevent(e) {
 }
 
 // Initial check and listeners
-document.addEventListener('DOMContentLoaded', () => {
+function scheduleBodyScrollChecks() {
     updateBodyScrollLock();
-});
-window.addEventListener('resize', updateBodyScrollLock);
-window.addEventListener('orientationchange', updateBodyScrollLock);
+    // Re-check after short delays to handle address-bar/hide/show and fonts/images loading
+    setTimeout(updateBodyScrollLock, 200);
+    setTimeout(updateBodyScrollLock, 800);
+    setTimeout(updateBodyScrollLock, 1500);
+}
+
+document.addEventListener('DOMContentLoaded', scheduleBodyScrollChecks);
+window.addEventListener('load', scheduleBodyScrollChecks);
+window.addEventListener('resize', scheduleBodyScrollChecks);
+window.addEventListener('orientationchange', scheduleBodyScrollChecks);
 
 // Watch for DOM changes that may affect page height
-const bodyObserver = new MutationObserver(() => updateBodyScrollLock());
+const bodyObserver = new MutationObserver(() => scheduleBodyScrollChecks());
 bodyObserver.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
 
 // Prevent touchmove when locked (passive:false to allow preventDefault)
