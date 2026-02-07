@@ -236,4 +236,46 @@ const outTimeInput = document.querySelector('input[name="out_time"]');
 if (inTimeInput) inTimeInput.addEventListener('input', updateActualHours);
 if (outTimeInput) outTimeInput.addEventListener('input', updateActualHours);
 
+// --- Body scroll lock for mobile when content fits viewport ---
+function updateBodyScrollLock() {
+    try {
+        // small tolerance for mobile address bar variations
+        const needsScroll = document.documentElement.scrollHeight > (window.innerHeight + 2);
+        if (!needsScroll) {
+            document.body.classList.add('no-scroll');
+        } else {
+            document.body.classList.remove('no-scroll');
+        }
+    } catch (e) {
+        // silent
+    }
+}
+
+function onTouchMovePrevent(e) {
+    // If body is locked, prevent touchmove except when interacting with modal content
+    if (!document.body.classList.contains('no-scroll')) return;
+    const path = e.composedPath ? e.composedPath() : (e.path || []);
+    // allow when any ancestor is .modal-content
+    for (const node of path) {
+        try {
+            if (node && node.classList && node.classList.contains && node.classList.contains('modal-content')) return;
+        } catch (ex) {}
+    }
+    e.preventDefault();
+}
+
+// Initial check and listeners
+document.addEventListener('DOMContentLoaded', () => {
+    updateBodyScrollLock();
+});
+window.addEventListener('resize', updateBodyScrollLock);
+window.addEventListener('orientationchange', updateBodyScrollLock);
+
+// Watch for DOM changes that may affect page height
+const bodyObserver = new MutationObserver(() => updateBodyScrollLock());
+bodyObserver.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+
+// Prevent touchmove when locked (passive:false to allow preventDefault)
+document.addEventListener('touchmove', onTouchMovePrevent, { passive: false });
+
 
