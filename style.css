@@ -16,6 +16,7 @@ body {
 } 
 
 /* When body has this class, prevent page scrolling (useful on mobile when content fits viewport) */
+html.no-scroll,
 body.no-scroll {
     overflow: hidden;
     height: 100vh;
