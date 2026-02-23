@@ -1,67 +1,162 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U-MOS 出退勤入力</title>
+    <title>Work Portal App</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>U-MOS 出退勤入力</h1>
-    <div class="buttons">
-        <button id="inBtn" type="button" onclick="showForm('in')">出勤</button>
-        <button id="outBtn" type="button" onclick="showForm('out')">退勤</button>
-    </div>
 
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeForm()">&times;</span>
-            <form id="inForm" class="form hidden" onsubmit="submitForm(event, 'in')">
-                <h2>出勤</h2>
-                <label>出勤時間: <input type="time" name="in_time" required></label><br>
-                <label>種別:
-                    <select name="in_type">
-                        <option value="客先">客先</option>
-                        <option value="遅刻">遅刻</option>
-                        <option value="有給">有給</option>
-                    </select>
-                </label><br>
-                <label>日にち: <input type="date" name="in_date" required></label><br>
-                <label>コメント: <input type="text" name="in_comment"></label><br>
-                <button type="submit">送信</button>
-            </form>
+    <main id="main-screen" class="container">
+        <h1 class="title">WORK PORTAL</h1>
+        <div class="grid-layout">
+            <button class="btn btn-office" onclick="handleAction('出社報告')">
+                <span class="btn-text">出社</span>
+                <span class="btn-sub">Office Check-in</span>
+            </button>
+            <button class="btn btn-blue" onclick="openAttendanceModal()">
+                <span class="btn-text">出勤</span>
+                <span class="btn-sub">Start Work</span>
+            </button>
+            <button class="btn btn-orange" onclick="openLeaveModal()">
+                <span class="btn-text">退勤</span>
+                <span class="btn-sub">End Work</span>
+            </button>
+            <button class="btn btn-green" onclick="handleAction('日報')">
+                <span class="btn-text">日報</span>
+                <span class="btn-sub">Daily Report</span>
+            </button>
+            <button class="btn btn-purple" onclick="toggleMenu('monthly-screen')">
+                <span class="btn-text">月報</span>
+                <span class="btn-sub">Monthly Report</span>
+            </button>
+        </div>
+    </main>
 
-            <form id="outForm" class="form hidden" onsubmit="submitForm(event, 'out')">
-                <h2>退勤</h2>
-                <label>退勤時間: <input type="time" name="out_time" required></label><br>
-                <label>日にち: <input type="date" name="out_date" required></label><br>
+    <section id="monthly-screen" class="container hidden">
+        <h1 class="title">MONTHLY REPORT</h1>
+        <div class="grid-layout triple">
+            <button class="btn btn-blue" onclick="handleAction('週次報告')">
+                <span class="btn-text">週次</span>
+                <span class="btn-sub">Weekly</span>
+            </button>
+            <button class="btn btn-green" onclick="handleAction('月間報告')">
+                <span class="btn-text">月間</span>
+                <span class="btn-sub">Monthly</span>
+            </button>
+            <button class="btn btn-orange" onclick="handleAction('評価報告')">
+                <span class="btn-text">評価</span>
+                <span class="btn-sub">Evaluation</span>
+            </button>
+        </div>
+        <button class="back-link" onclick="toggleMenu('main-screen')">
+            ← 戻る
+        </button>
+    </section>
 
-                <!-- 出勤時間を入力または自動挿入 -->
-                <label>出勤時間: <input type="time" name="in_time_for_out" id="inTimeForOut" required></label><br>
-
-                <!-- 実績時間は自動計算して読み取り専用で表示 -->
-                <label>実績時間（時間）: <input type="number" name="actual_hours" id="actualHours" step="0.01" readonly placeholder="0.00"></label><br>
-
-                <label>業務内容: 
-                    <div class="task-input-wrapper">
-                        <input type="text" name="out_task" id="taskInput" oninput="showTaskDropdown()" onfocus="showTaskDropdown()" onblur="hideTaskDropdown()">
-                        <div id="taskDropdown" class="task-dropdown hidden"></div>
-                    </div>
-                </label>
-                <button type="button" onclick="openAddTemplateModal()" class="add-template-btn">テンプレート追加</button><br>
-                <button type="submit">送信</button>
-            </form> 
+    <div id="attendance-modal" class="modal-overlay hidden">
+        <div class="modal-content scrollable">
+            <h2 class="modal-title" style="color: var(--blue);">出勤報告</h2>
+            <div class="input-group">
+                <label>日付</label>
+                <input type="date" id="report-date">
+            </div>
+            <div class="input-group">
+                <label>出勤時間</label>
+                <input type="time" id="start-time" value="09:00">
+            </div>
+            <div class="input-group">
+                <label>種別</label>
+                <select id="work-type">
+                    <option value="通常">通常出勤</option>
+                    <option value="リモート">リモート</option>
+                    <option value="直行">直行</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <div class="template-header">
+                    <label>コメント</label>
+                    <button class="mini-btn" onclick="openTemplateManager('start')">
+                        編集/追加
+                    </button>
+                </div>
+                <div id="start-template-container" class="template-bar"></div>
+                <textarea id="comment" rows="3" placeholder="本日の予定など"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeAllModals()">
+                    キャンセル
+                </button>
+                <button class="btn-primary" style="--btn-color: var(--blue);" onclick="submitAttendance()">
+                    報告
+                </button>
+            </div>
         </div>
     </div>
 
-    <div id="templateModal" class="modal">
+    <div id="leave-modal" class="modal-overlay hidden">
+        <div class="modal-content scrollable">
+            <h2 class="modal-title" style="color: var(--orange);">退勤報告</h2>
+            <div class="input-group">
+                <label>日にち</label>
+                <input type="date" id="leave-date">
+            </div>
+            <div class="input-group">
+                <label>出勤時間</label>
+                <input type="time" id="leave-start-time" oninput="calculateWorkHours()">
+            </div>
+            <div class="input-group">
+                <label>退勤時間</label>
+                <input type="time" id="end-time" value="17:30" oninput="calculateWorkHours()">
+            </div>
+            <div class="input-group">
+                <label>実稼働時間 (休憩控除済)</label>
+                <input type="text" id="work-hours" readonly placeholder="0.00">
+            </div>
+            <div class="input-group">
+                <div class="template-header">
+                    <label>業務内容</label>
+                    <button class="mini-btn" onclick="openTemplateManager('end')">
+                        編集/追加
+                    </button>
+                </div>
+                <div id="end-template-container" class="template-bar"></div>
+                <textarea id="work-content" rows="4" placeholder="本日の業務内容"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeAllModals()">
+                    キャンセル
+                </button>
+                <button class="btn-primary" style="--btn-color: var(--orange);" onclick="submitLeave()">
+                    報告
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="template-manager-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <span class="close" onclick="closeAddTemplateModal()">&times;</span>
-            <h2>テンプレート追加</h2>
-            <div id="templateError" class="template-error hidden"></div>
-            <label>新しいテンプレート: <input type="text" id="newTemplateInput" placeholder="追加したいテンプレートを入力" oninput="checkTemplateInput()"></label><br>
-            <button type="button" onclick="addTemplate()">追加</button>
+            <h3 id="mgr-title" class="modal-title">テンプレート編集</h3>
+            <div class="input-group">
+                <label>新規追加</label>
+                <div class="add-box">
+                    <input type="text" id="mgr-new-input" placeholder="例：会議">
+                    <button class="mini-btn add-action" id="mgr-add-btn">
+                        追加
+                    </button>
+                </div>
+                <p id="mgr-error" style="color: #ff4d4d; font-size: 0.7rem; margin-top: 5px; display: none;">
+                    すでに追加済です。
+                </p>
+            </div>
+            <label style="font-size: 0.75rem; opacity: 0.8;">登録済み（クリックで削除）</label>
+            <div id="mgr-list" class="template-bar mgr-list-area"></div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeTemplateManager()" style="width: 100%;">
+                    閉じる
+                </button>
+            </div>
         </div>
     </div>
 

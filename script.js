@@ -1,301 +1,247 @@
+/**
+ * [グローバル定数・変数]
+ * プログラム全体で共有し、状態を管理するための変数です。
+ */
+let savedStartTime = "09:00"; // 出勤時に報告した時間を保持し、退勤画面の初期値として利用します。
+let currentMgrType = 'start'; // 現在「出勤」と「退勤」どちらのテンプレートを編集しているかを判別します。
 
-// テンプレートを管理
-let taskTemplates = ['26BEV仕様作成'];
+// テンプレートデータの初期値。ユーザーがブラウザを閉じてもいいようにLocalStorageで管理します。
+let templates = {
+    start: ['【現場直行】', '【リモート】', '【AM休暇】'],
+    end: ['【定例会議】', '【資料作成】', '【メール対応】']
+};
 
-// ローカルストレージからテンプレートを読み込む
-function loadTemplates() {
-    const saved = localStorage.getItem('taskTemplates');
-    if (saved) {
-        taskTemplates = JSON.parse(saved);
+/**
+ * [初期化処理]
+ * ページが読み込まれた瞬間に、保存されているデータの読み込みと画面描画を行います。
+ */
+window.onload = function() {
+    // LocalStorageから過去に保存したユーザー専用テンプレートを読み込みます。
+    const stored = localStorage.getItem('userWorkTemplatesV3');
+    if (stored) {
+        templates = JSON.parse(stored);
     }
+    // 出勤モーダルと退勤モーダル、それぞれのボタン一覧を画面に作ります。
+    renderMainTemplates();
+};
+
+/**
+ * [出退勤画面：テンプレートボタン生成]
+ * 登録されているテンプレート文字列を元に、クリック可能なボタンを自動で並べます。
+ */
+function renderMainTemplates() {
+    // 出勤報告モーダル内のコメント入力エリア（start）にボタンを描画
+    renderMainType('start', 'start-template-container', 'comment');
+    // 退勤報告モーダル内の業務内容領域（end）にボタンを描画
+    renderMainType('end', 'end-template-container', 'work-content');
 }
 
-// テンプレートをローカルストレージに保存
-function saveTemplates() {
-    localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
-}
-
-function showForm(type) {
-    const modal = document.getElementById('modal');
-    document.getElementById('inForm').classList.add('hidden');
-    document.getElementById('outForm').classList.add('hidden');
+/**
+ * [テンプレート描画の共通ロジック]
+ * @param {string} type - 'start' (出勤) か 'end' (退勤) か
+ * @param {string} containerId - ボタンを追加するHTML要素のID
+ * @param {string} targetId - ボタンを押した時に文字を書き込むテキストエリアのID
+ */
+function renderMainType(type, containerId, targetId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = ''; // 既存のボタンを一度クリアします。
     
-    // 今日の日付を取得
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (type === 'in') {
-        document.getElementById('inForm').classList.remove('hidden');
-        document.querySelector('input[name="in_date"]').value = today;
-        document.querySelector('input[name="in_time"]').value = '09:00';
-    } else {
-        document.getElementById('outForm').classList.remove('hidden');
-        document.querySelector('input[name="out_date"]').value = today;
-        document.querySelector('input[name="out_time"]').value = '17:30';
-        updateTaskDropdown();
-
-        // 出勤時間をローカルストレージから挿入（あれば当日分）、なければ 09:00
-        const inField = document.getElementById('inTimeForOut');
-        const lastIn = JSON.parse(localStorage.getItem('lastIn') || 'null');
-        if (inField) {
-            if (lastIn && lastIn.date === today) {
-                inField.value = lastIn.time;
-            } else {
-                inField.value = '09:00';
-            }
-            updateActualHours();
-        }
-    }
-
-    modal.style.display = 'block';
-} 
-
-function closeForm() {
-    const modal = document.getElementById('modal');
-    modal.style.display = 'none';
-}
-
-function openAddTemplateModal() {
-    const templateModal = document.getElementById('templateModal');
-    templateModal.style.display = 'block';
-    document.getElementById('newTemplateInput').value = '';
-    document.getElementById('newTemplateInput').focus();
-}
-
-function closeAddTemplateModal() {
-    const templateModal = document.getElementById('templateModal');
-    templateModal.style.display = 'none';
-    document.getElementById('templateError').classList.add('hidden');
-} 
-
-function checkTemplateInput() {
-    const newTemplate = document.getElementById('newTemplateInput').value.trim();
-    const errorDiv = document.getElementById('templateError');
-    
-    if (newTemplate && taskTemplates.includes(newTemplate)) {
-        errorDiv.textContent = 'すでにテンプレートに追加されています';
-        errorDiv.classList.remove('hidden');
-    } else {
-        errorDiv.classList.add('hidden');
-    }
-}
-
-function addTemplate() {
-    const newTemplate = document.getElementById('newTemplateInput').value.trim();
-    const errorDiv = document.getElementById('templateError');
-    
-    if (!newTemplate) {
-        errorDiv.textContent = 'テンプレートを入力してください';
-        errorDiv.classList.remove('hidden');
-        return;
-    }
-    
-    // 重複チェック
-    if (taskTemplates.includes(newTemplate)) {
-        errorDiv.textContent = 'すでにテンプレートに追加されています';
-        errorDiv.classList.remove('hidden');
-        return;
-    }
-    
-    taskTemplates.push(newTemplate);
-    saveTemplates();
-    updateTaskDropdown();
-    closeAddTemplateModal();
-    alert('テンプレートを追加しました');
-}
-
-function updateTaskDropdown() {
-    const dropdown = document.getElementById('taskDropdown');
-    dropdown.innerHTML = '';
-    taskTemplates.forEach(template => {
-        const item = document.createElement('div');
-        item.className = 'task-item';
-        item.textContent = template;
-        item.onclick = () => selectTask(template);
-        dropdown.appendChild(item);
+    templates[type].forEach(text => {
+        const btn = document.createElement('button');
+        btn.className = 'mini-btn';
+        // 見た目をスッキリさせるため、表示上は【 】を外した文字を出します。
+        btn.innerText = text.replace(/【|】/g, ''); 
+        
+        // ボタンをクリックした時の動作
+        btn.onclick = () => {
+            const area = document.getElementById(targetId);
+            // 既に文字が入っている場合は改行を入れてから追記します。
+            area.value += (area.value ? "\n" : "") + text;
+        };
+        container.appendChild(btn);
     });
 }
 
-window.onclick = function(event) {
-    const modal = document.getElementById('modal');
-    const templateModal = document.getElementById('templateModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
-    }
-    if (event.target == templateModal) {
-        templateModal.style.display = 'none';
-    }
-}
-
-function submitForm(event, type) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-    const data = {};
-    formData.forEach((value, key) => data[key] = value);
-
-    fetch(`/submit_${type}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-    .then(json => {
-        alert(json.message);
-        // 成功時に出勤データをローカルに保持（退勤ポップアップでの自動挿入に使用）
-        if (type === 'in') {
-            try {
-                if (data['in_date'] && data['in_time']) {
-                    localStorage.setItem('lastIn', JSON.stringify({ date: data['in_date'], time: data['in_time'] }));
-                }
-            } catch (e) {
-                console.warn('localStorage set failed', e);
-            }
-        }
-        closeForm();
-    })
-    .catch(err => alert("エラーが発生しました"));
-}
-
-function showTaskDropdown() {
-    const taskDropdown = document.getElementById('taskDropdown');
-    taskDropdown.classList.remove('hidden');
-}
-
-function hideTaskDropdown() {
-    setTimeout(() => {
-        const taskDropdown = document.getElementById('taskDropdown');
-        taskDropdown.classList.add('hidden');
-    }, 100);
-}
-
-function selectTask(task) {
-    document.getElementById('taskInput').value = task;
-    document.getElementById('taskDropdown').classList.add('hidden');
-}
-
-// ページ読み込み時にテンプレートを読み込む
-loadTemplates();
-
-// --- 実績時間計算機能 ---
-function timeToMinutes(t) {
-    if (!t) return null;
-    const parts = t.split(':').map(Number);
-    if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
-    return parts[0] * 60 + parts[1];
-}
-
-function overlapMinutes(aStart, aEnd, bStart, bEnd) {
-    return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
-}
-
-function computeActualHours(inTimeStr, outTimeStr) {
-    const inMin = timeToMinutes(inTimeStr);
-    const outMin = timeToMinutes(outTimeStr);
-    if (inMin === null || outMin === null) return null;
-    let duration = outMin - inMin;
-    if (duration < 0) duration += 24 * 60; // 日跨ぎ対応
-
-    const breaks = [
-        [11 * 60 + 45, 12 * 60 + 30], // 11:45 - 12:30
-        [17 * 60 + 30, 18 * 60]       // 17:30 - 18:00
-    ];
-
-    let breakOverlap = 0;
-    for (const br of breaks) {
-        breakOverlap += overlapMinutes(inMin, outMin, br[0], br[1]);
-    }
-
-    let workingMinutes = duration - breakOverlap;
-    if (workingMinutes < 0) workingMinutes = 0;
-    const hours = workingMinutes / 60;
-    return Number(hours.toFixed(2));
-}
-
-function updateActualHours() {
-    const inField = document.getElementById('inTimeForOut');
-    const outField = document.querySelector('input[name="out_time"]');
-    const actualField = document.getElementById('actualHours');
-    if (!inField || !outField || !actualField) return;
-    const inVal = inField.value;
-    const outVal = outField.value;
-    if (!inVal || !outVal) {
-        actualField.value = '';
-        return;
-    }
-    const hours = computeActualHours(inVal, outVal);
-    if (hours === null) {
-        actualField.value = '';
-    } else {
-        actualField.value = hours.toFixed(2);
-    }
-}
-
-// 入力の変化を監視
-const inTimeInput = document.getElementById('inTimeForOut');
-const outTimeInput = document.querySelector('input[name="out_time"]');
-if (inTimeInput) inTimeInput.addEventListener('input', updateActualHours);
-if (outTimeInput) outTimeInput.addEventListener('input', updateActualHours);
-
-// --- Body scroll lock for mobile when content fits viewport ---
-function updateBodyScrollLock() {
-    try {
-        // Use visualViewport if available (better on mobile browsers with dynamic UI)
-        const viewportHeight = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
-
-        // Calculate content height robustly
-        const contentHeight = Math.max(
-            document.documentElement.scrollHeight || 0,
-            document.body.scrollHeight || 0,
-            document.documentElement.offsetHeight || 0,
-            document.body.offsetHeight || 0
-        );
-
-        // small tolerance for mobile address bar / rounding
-        const needsScroll = contentHeight > (viewportHeight + 4);
-        if (!needsScroll) {
-            document.body.classList.add('no-scroll');
-            document.documentElement.classList.add('no-scroll');
+/**
+ * [管理画面：ポップアップを開く]
+ * テンプレートの追加・削除を行う専用の編集画面を表示します。
+ */
+function openTemplateManager(type) {
+    currentMgrType = type; // 今どちらを編集しているか記録
+    const modal = document.getElementById('template-manager-modal');
+    const title = document.getElementById('mgr-title');
+    const errorMsg = document.getElementById('mgr-error');
+    const input = document.getElementById('mgr-new-input');
+    
+    modal.classList.remove('hidden'); // ポップアップを表示
+    errorMsg.style.display = 'none';  // エラー表示を隠す
+    input.value = '';                 // 入力欄を空にする
+    
+    // 編集画面のタイトルを動的に変更
+    title.innerText = (type === 'start') ? '出勤テンプレート編集' : '退勤テンプレート編集';
+    
+    // 追加ボタンが押された時の処理をここで定義
+    document.getElementById('mgr-add-btn').onclick = function() {
+        const name = input.value.trim();
+        if (!name) return; // 空っぽなら何もしない
+        
+        const fullText = `【${name}】`;
+        
+        // [修正ポイント] 重複チェック機能
+        if (templates[currentMgrType].includes(fullText)) {
+            errorMsg.style.display = 'block'; // 「すでに追加済です」を表示
         } else {
-            document.body.classList.remove('no-scroll');
-            document.documentElement.classList.remove('no-scroll');
+            errorMsg.style.display = 'none';
+            templates[currentMgrType].push(fullText); // データを追加
+            saveAndRefresh(); // 保存と画面更新
+            input.value = ''; // 入力欄をリセット
+            renderMgrList();  // 削除リストも再描画
         }
-    } catch (e) {
-        // silent
-    }
+    };
+    
+    renderMgrList(); // 現在の登録済みリストを表示
 }
 
-function onTouchMovePrevent(e) {
-    // If body is locked, prevent touchmove except when interacting with modal content
-    if (!document.body.classList.contains('no-scroll')) return;
-    const path = e.composedPath ? e.composedPath() : (e.path || []);
-    // allow when any ancestor is .modal-content
-    for (const node of path) {
-        try {
-            if (node && node.classList && node.classList.contains && node.classList.contains('modal-content')) return;
-        } catch (ex) {}
-    }
-    e.preventDefault();
+/**
+ * [管理画面：削除用ボタンリストの描画]
+ */
+function renderMgrList() {
+    const list = document.getElementById('mgr-list');
+    list.innerHTML = ''; // 一度クリア
+    
+    templates[currentMgrType].forEach((text, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'mini-btn delete-btn'; // 削除専用の赤いスタイルを適用
+        btn.innerText = text.replace(/【|】/g, '');
+        
+        // 削除ボタンをクリックした時の動作
+        btn.onclick = () => {
+            templates[currentMgrType].splice(index, 1); // 配列から指定の1件を消す
+            saveAndRefresh(); // 保存と反映
+            renderMgrList();  // 自分自身を書き換えてリストを更新
+        };
+        list.appendChild(btn);
+    });
 }
 
-// Initial check and listeners
-function scheduleBodyScrollChecks() {
-    updateBodyScrollLock();
-    // Re-check after short delays to handle address-bar/hide/show and fonts/images loading
-    setTimeout(updateBodyScrollLock, 200);
-    setTimeout(updateBodyScrollLock, 800);
-    setTimeout(updateBodyScrollLock, 1500);
+/**
+ * [データ保存と画面反映]
+ * 変更があった際にLocalStorageへ保存し、メイン画面のボタンも最新の状態にします。
+ */
+function saveAndRefresh() {
+    localStorage.setItem('userWorkTemplatesV3', JSON.stringify(templates));
+    renderMainTemplates(); // メイン画面のショートカットボタンを更新
 }
 
-document.addEventListener('DOMContentLoaded', scheduleBodyScrollChecks);
-window.addEventListener('load', scheduleBodyScrollChecks);
-window.addEventListener('resize', scheduleBodyScrollChecks);
-window.addEventListener('orientationchange', scheduleBodyScrollChecks);
+/**
+ * [管理画面を閉じる]
+ */
+function closeTemplateManager() {
+    document.getElementById('template-manager-modal').classList.add('hidden');
+}
 
-// Watch for DOM changes that may affect page height
-const bodyObserver = new MutationObserver(() => scheduleBodyScrollChecks());
-bodyObserver.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+/**
+ * [基本画面遷移機能]
+ * メインメニューと月報メニューなどの表示を切り替えます。
+ */
+function toggleMenu(targetId) {
+    document.getElementById('main-screen').classList.add('hidden');
+    document.getElementById('monthly-screen').classList.add('hidden');
+    document.getElementById(targetId).classList.remove('hidden');
+}
 
-// Prevent touchmove when locked (passive:false to allow preventDefault)
-document.addEventListener('touchmove', onTouchMovePrevent, { passive: false });
+/**
+ * [出勤報告モーダルを開く]
+ */
+function openAttendanceModal() {
+    document.getElementById('attendance-modal').classList.remove('hidden');
+    // 日付選択欄に「今日」の日付を自動的にセットします。
+    const now = new Date();
+    document.getElementById('report-date').value = now.toISOString().substr(0, 10);
+}
 
+/**
+ * [退勤報告モーダルを開く]
+ */
+function openLeaveModal() {
+    document.getElementById('leave-modal').classList.remove('hidden');
+    const now = new Date();
+    document.getElementById('leave-date').value = now.toISOString().substr(0, 10);
+    // 出勤報告時に保存した時間を初期値として自動入力します。
+    document.getElementById('leave-start-time').value = savedStartTime;
+    // 開いた瞬間に実稼働時間を計算します。
+    calculateWorkHours();
+}
 
+/**
+ * [実稼働計算ロジック]
+ * 開始時間と終了時間から、会社規定の休憩時間を引いた数値を算出します。
+ */
+function calculateWorkHours() {
+    const sVal = document.getElementById('leave-start-time').value;
+    const eVal = document.getElementById('end-time').value;
+    if (!sVal || !eVal) return;
+
+    // "09:00" のような文字列を、計算しやすいように「0時からの累計分数」に直す関数
+    const toMin = (t) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const start = toMin(sVal);
+    const end = toMin(eVal);
+
+    // 単純な差分（拘束時間）
+    let total = end - start;
+    if (total < 0) total += 24 * 60; // 深夜を跨いだ場合の補正
+
+    // 重複する時間を計算するための補助関数
+    const overlap = (s1, e1, s2, e2) => Math.max(0, Math.min(e1, e2) - Math.max(s1, s2));
+    
+    // 休憩時間の定義（分数換算）
+    // 休憩1: 11:45(705分) 〜 12:30(750分) ＝ 45分
+    // 休憩2: 17:30(1050分) 〜 18:00(1080分) ＝ 30分
+    let breakMin = 0;
+    breakMin += overlap(start, end, 705, 750);
+    breakMin += overlap(start, end, 1050, 1080);
+
+    // 実稼働時間 ＝ 拘束時間 － 休憩合計時間
+    const workHours = (total - breakMin) / 60;
+    // 結果を小数点2位（例: 7.50）で入力欄に表示します。
+    document.getElementById('work-hours').value = workHours.toFixed(2);
+}
+
+/**
+ * [モーダルをすべて閉じる]
+ */
+function closeAllModals() {
+    document.getElementById('attendance-modal').classList.add('hidden');
+    document.getElementById('leave-modal').classList.add('hidden');
+}
+
+/**
+ * [出勤送信ボタンの動作]
+ */
+function submitAttendance() {
+    // 後の退勤計算に使うため、入力された出勤時間を変数にキープします。
+    savedStartTime = document.getElementById('start-time').value;
+    alert(`出勤報告を完了しました。\n本日の開始：${savedStartTime}`);
+    closeAllModals();
+}
+
+/**
+ * [退勤送信ボタンの動作]
+ */
+function submitLeave() {
+    const res = document.getElementById('work-hours').value;
+    alert(`退勤報告を完了しました。\n本日の実稼働：${res}時間`);
+    closeAllModals();
+}
+
+/**
+ * [汎用アクションハンドラ]
+ * まだ中身が作られていないボタン（日報、出社など）の分岐処理です。
+ */
+function handleAction(type) {
+    alert(`${type}の機能は現在準備中です。次はここを作りましょう！`);
+}
